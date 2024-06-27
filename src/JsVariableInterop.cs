@@ -12,13 +12,13 @@ namespace Soenneker.Blazor.Utils.JsVariable;
 public class JsVariableInterop : IJsVariableInterop
 {
     private readonly IJSRuntime _jsRuntime;
-    private readonly AsyncSingleton<object> _isScriptInjected;
+    private readonly AsyncSingleton<object> _scriptInitializer;
 
     public JsVariableInterop(IJSRuntime jsRuntime)
     {
         _jsRuntime = jsRuntime;
 
-        _isScriptInjected = new AsyncSingleton<object>(async () =>
+        _scriptInitializer = new AsyncSingleton<object>(async () =>
         {
             await _jsRuntime.InvokeVoidAsync("eval", @"
                 window.isVariableAvailable = function (variableName) {
@@ -32,13 +32,13 @@ public class JsVariableInterop : IJsVariableInterop
 
     public async ValueTask<bool> IsVariableAvailable(string variableName, CancellationToken cancellationToken = default)
     {
-        _ = await _isScriptInjected.Get().NoSync();
+        _ = await _scriptInitializer.Get().NoSync();
         return await _jsRuntime.InvokeAsync<bool>("isVariableAvailable", cancellationToken, variableName);
     }
 
     public async ValueTask WaitForVariable(string variableName, int delay = 100, CancellationToken cancellationToken = default)
     {
-        _ = await _isScriptInjected.Get().NoSync();
+        _ = await _scriptInitializer.Get().NoSync();
 
         while (!await IsVariableAvailable(variableName, cancellationToken).NoSync())
         {
@@ -48,6 +48,6 @@ public class JsVariableInterop : IJsVariableInterop
 
     public ValueTask DisposeAsync()
     {
-        return _isScriptInjected.DisposeAsync();
+        return _scriptInitializer.DisposeAsync();
     }
 }
