@@ -12,13 +12,13 @@ namespace Soenneker.Blazor.Utils.JsVariable;
 public class JsVariableInterop : IJsVariableInterop
 {
     private readonly IJSRuntime _jsRuntime;
-    private readonly AsyncSingleton<bool> _isScriptInjected;
+    private readonly AsyncSingleton<object> _isScriptInjected;
 
     public JsVariableInterop(IJSRuntime jsRuntime)
     {
         _jsRuntime = jsRuntime;
 
-        _isScriptInjected = new AsyncSingleton<bool>(async () =>
+        _isScriptInjected = new AsyncSingleton<object>(async () =>
         {
             await _jsRuntime.InvokeVoidAsync("eval", @"
                 window.isVariableAvailable = function (variableName) {
@@ -26,7 +26,7 @@ public class JsVariableInterop : IJsVariableInterop
                 };
             ");
 
-            return true;
+            return new object();
         });
     }
 
