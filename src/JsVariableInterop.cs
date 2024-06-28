@@ -18,9 +18,11 @@ public class JsVariableInterop : IJsVariableInterop
     {
         _jsRuntime = jsRuntime;
 
-        _scriptInitializer = new AsyncSingleton<object>(async () =>
+        _scriptInitializer = new AsyncSingleton<object>(async objects =>
         {
-            await _jsRuntime.InvokeVoidAsync("eval", @"
+            var cancellationToken = (CancellationToken)objects[0];
+
+            await _jsRuntime.InvokeVoidAsync("eval", cancellationToken, @"
                 window.isVariableAvailable = function (variableName) {
                     return typeof window[variableName] !== 'undefined';
                 };
@@ -32,13 +34,13 @@ public class JsVariableInterop : IJsVariableInterop
 
     public async ValueTask<bool> IsVariableAvailable(string variableName, CancellationToken cancellationToken = default)
     {
-        _ = await _scriptInitializer.Get().NoSync();
+        _ = await _scriptInitializer.Get(cancellationToken).NoSync();
         return await _jsRuntime.InvokeAsync<bool>("isVariableAvailable", cancellationToken, variableName);
     }
 
     public async ValueTask WaitForVariable(string variableName, int delay = 100, CancellationToken cancellationToken = default)
     {
-        _ = await _scriptInitializer.Get().NoSync();
+        _ = await _scriptInitializer.Get(cancellationToken).NoSync();
 
         while (!await IsVariableAvailable(variableName, cancellationToken).NoSync())
         {
