@@ -18,11 +18,9 @@ public class JsVariableInterop : IJsVariableInterop
     {
         _jsRuntime = jsRuntime;
 
-        _scriptInitializer = new AsyncSingleton<object>(async objects =>
+        _scriptInitializer = new AsyncSingleton<object>(async (token, _) =>
         {
-            var cancellationToken = (CancellationToken)objects[0];
-
-            await _jsRuntime.InvokeVoidAsync("eval", cancellationToken, @"
+            await _jsRuntime.InvokeVoidAsync("eval", token, @"
                 window.isVariableAvailable = function (variableName) {
                     return typeof window[variableName] !== 'undefined';
                 };
