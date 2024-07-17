@@ -14,6 +14,6 @@ public static class JsVariableInteropRegistrar
     /// </summary>
     public static void AddJsVariableInterop(this IServiceCollection services)
     {
-        services.TryAddSingleton<IJsVariableInterop, JsVariableInterop>();
+        services.TryAddScoped<IJsVariableInterop, JsVariableInterop>();
     }
 }
