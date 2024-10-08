@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.JSInterop;
@@ -12,19 +13,20 @@ namespace Soenneker.Blazor.Utils.JsVariable;
 public class JsVariableInterop : IJsVariableInterop
 {
     private readonly IJSRuntime _jsRuntime;
-    private readonly AsyncSingleton<object> _scriptInitializer;
+    private readonly AsyncSingleton _scriptInitializer;
 
     public JsVariableInterop(IJSRuntime jsRuntime)
     {
         _jsRuntime = jsRuntime;
 
-        _scriptInitializer = new AsyncSingleton<object>(async (token, _) =>
+        _scriptInitializer = new AsyncSingleton(async (token, _) =>
         {
-            await _jsRuntime.InvokeVoidAsync("eval", token, @"
-                window.isVariableAvailable = function (variableName) {
-                    return typeof window[variableName] !== 'undefined';
-                };
-            ");
+            await _jsRuntime.InvokeVoidAsync("eval", token,
+                """
+                    window.isVariableAvailable = function (variableName) {
+                        return typeof window[variableName] !== 'undefined';
+                    };
+                """).NoSync();
 
             return new object();
         });
@@ -32,14 +34,14 @@ public class JsVariableInterop : IJsVariableInterop
 
     public async ValueTask<bool> IsVariableAvailable(string variableName, CancellationToken cancellationToken = default)
     {
-        _ = await _scriptInitializer.Get(cancellationToken).NoSync();
+        await _scriptInitializer.Init(cancellationToken).NoSync();
         var result = await _jsRuntime.InvokeAsync<bool>("isVariableAvailable", cancellationToken, variableName);
         return result;
     }
 
     public async ValueTask WaitForVariable(string variableName, int delay = 100, CancellationToken cancellationToken = default)
     {
-        _ = await _scriptInitializer.Get(cancellationToken).NoSync();
+        await _scriptInitializer.Init(cancellationToken).NoSync();
 
         while (!await IsVariableAvailable(variableName, cancellationToken).NoSync())
         {
@@ -49,6 +51,8 @@ public class JsVariableInterop : IJsVariableInterop
 
     public ValueTask DisposeAsync()
     {
+        GC.SuppressFinalize(this);
+
         return _scriptInitializer.DisposeAsync();
     }
 }
