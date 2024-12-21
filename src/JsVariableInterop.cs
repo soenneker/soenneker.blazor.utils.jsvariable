@@ -35,7 +35,7 @@ public class JsVariableInterop : IJsVariableInterop
     public async ValueTask<bool> IsVariableAvailable(string variableName, CancellationToken cancellationToken = default)
     {
         await _scriptInitializer.Init(cancellationToken).NoSync();
-        var result = await _jsRuntime.InvokeAsync<bool>("isVariableAvailable", cancellationToken, variableName);
+        bool result = await _jsRuntime.InvokeAsync<bool>("isVariableAvailable", cancellationToken, variableName).NoSync();
         return result;
     }
 

@@ -12,8 +12,10 @@ public static class JsVariableInteropRegistrar
     /// <summary>
     /// Adds <see cref="IJsVariableInterop"/> as a scoped service. <para/>
     /// </summary>
-    public static void AddJsVariableInterop(this IServiceCollection services)
+    public static IServiceCollection AddJsVariableInteropAsScoped(this IServiceCollection services)
     {
         services.TryAddScoped<IJsVariableInterop, JsVariableInterop>();
+
+        return services;
     }
 }
