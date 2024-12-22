@@ -44,7 +44,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
         <PackageReference Include="Microsoft.JSInterop" Version="9.0.0" />
-        <PackageReference Include="Soenneker.Extensions.Task" Version="3.0.78" />
+        <PackageReference Include="Soenneker.Extensions.Task" Version="3.0.79" />
         <PackageReference Include="Soenneker.Utils.AsyncSingleton" Version="3.0.510" />
     </ItemGroup>
 </Project>
