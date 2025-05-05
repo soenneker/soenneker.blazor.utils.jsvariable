@@ -1,4 +1,4 @@
-# Contributing to Soenneker.Blazor.Utils.JsVariable
+﻿# Contributing to Soenneker.Blazor.Utils.JsVariable
 
 We're excited that you're interested in contributing!
 
