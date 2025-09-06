@@ -26,7 +26,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
                                                                     return typeof window[variableName] !== 'undefined';
                                                                 };
                                                             """)
-                            .NoSync();
+                            ;
 
             return new object();
         });
@@ -34,17 +34,17 @@ public sealed class JsVariableInterop : IJsVariableInterop
 
     public async ValueTask<bool> IsVariableAvailable(string variableName, CancellationToken cancellationToken = default)
     {
-        await _scriptInitializer.Init(cancellationToken).NoSync();
-        return await _jsRuntime.InvokeAsync<bool>("isVariableAvailable", cancellationToken, variableName).NoSync();
+        await _scriptInitializer.Init(cancellationToken);
+        return await _jsRuntime.InvokeAsync<bool>("isVariableAvailable", cancellationToken, variableName);
     }
 
     public async ValueTask WaitForVariable(string variableName, int delay = 100, CancellationToken cancellationToken = default)
     {
-        await _scriptInitializer.Init(cancellationToken).NoSync();
+        await _scriptInitializer.Init(cancellationToken);
 
-        while (!await IsVariableAvailable(variableName, cancellationToken).NoSync())
+        while (!await IsVariableAvailable(variableName, cancellationToken))
         {
-            await DelayUtil.Delay(delay, null, cancellationToken).NoSync();
+            await DelayUtil.Delay(delay, null, cancellationToken);
         }
     }
 
