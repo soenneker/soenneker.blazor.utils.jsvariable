@@ -1,8 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.JSInterop;
+using Soenneker.Asyncs.Initializers;
 using Soenneker.Blazor.Utils.JsVariable.Abstract;
-using Soenneker.Utils.AsyncInitializers;
 using Soenneker.Utils.Delay;
 
 namespace Soenneker.Blazor.Utils.JsVariable;
