@@ -16,7 +16,7 @@
         <AssemblyName>Soenneker.Blazor.Utils.JsVariable</AssemblyName>
         <PackageId>Soenneker.Blazor.Utils.JsVariable</PackageId>
         <PackageTags>blazor utils jsvariable variable js javascript jsvariableinterop interop csharp dotnet c# .net</PackageTags>
-        <Copyright>Copyright © 2024-2025 Jake Soenneker</Copyright>
+        <Copyright>Copyright © 2024-2026 Jake Soenneker</Copyright>
         <Authors>Jake Soenneker</Authors>
         <Company>https://soenneker.com</Company>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
