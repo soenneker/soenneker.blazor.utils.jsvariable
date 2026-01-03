@@ -48,6 +48,6 @@
         <PackageReference Include="Microsoft.JSInterop" Version="10.0.1" />
         <PackageReference Include="Soenneker.Asyncs.Initializers" Version="4.0.4" />
         <PackageReference Include="Soenneker.Extensions.Task" Version="4.0.110" />
-        <PackageReference Include="Soenneker.Utils.Delay" Version="4.0.44" />
+        <PackageReference Include="Soenneker.Utils.Delay" Version="4.0.45" />
     </ItemGroup>
 </Project>
