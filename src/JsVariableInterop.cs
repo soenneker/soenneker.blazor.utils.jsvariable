@@ -19,9 +19,9 @@ public sealed class JsVariableInterop : IJsVariableInterop
         _scriptInitializer = new AsyncInitializer(Initialize);
     }
 
-    private async ValueTask Initialize(CancellationToken token)
+    private ValueTask Initialize(CancellationToken token)
     {
-        await _jsRuntime.InvokeVoidAsync("eval", token, """
+        return _jsRuntime.InvokeVoidAsync("eval", token, """
                                                             window.isVariableAvailable = function (variableName) {
                                                                 return typeof window[variableName] !== 'undefined';
                                                             };
