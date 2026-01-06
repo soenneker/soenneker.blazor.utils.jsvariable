@@ -16,15 +16,16 @@ public sealed class JsVariableInterop : IJsVariableInterop
     public JsVariableInterop(IJSRuntime jsRuntime)
     {
         _jsRuntime = jsRuntime;
+        _scriptInitializer = new AsyncInitializer(Initialize);
+    }
 
-        _scriptInitializer = new AsyncInitializer(async token =>
-        {
-            await _jsRuntime.InvokeVoidAsync("eval", token, """
-                                                                window.isVariableAvailable = function (variableName) {
-                                                                    return typeof window[variableName] !== 'undefined';
-                                                                };
-                                                            """);
-        });
+    private async ValueTask Initialize(CancellationToken token)
+    {
+        await _jsRuntime.InvokeVoidAsync("eval", token, """
+                                                            window.isVariableAvailable = function (variableName) {
+                                                                return typeof window[variableName] !== 'undefined';
+                                                            };
+                                                        """);
     }
 
     public async ValueTask<bool> IsVariableAvailable(string variableName, CancellationToken cancellationToken = default)
