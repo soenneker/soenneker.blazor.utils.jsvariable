@@ -48,7 +48,6 @@
         <PackageReference Include="Microsoft.JSInterop" Version="10.0.3" />
         <PackageReference Include="Soenneker.Asyncs.Initializers" Version="4.0.16" />
         <PackageReference Include="Soenneker.Extensions.CancellationTokens" Version="4.0.7" />
-        <PackageReference Include="Soenneker.Extensions.Task" Version="4.0.111" />
         <PackageReference Include="Soenneker.Utils.CancellationScopes" Version="4.0.23" />
         <PackageReference Include="Soenneker.Utils.Delay" Version="4.0.49" />
     </ItemGroup>
