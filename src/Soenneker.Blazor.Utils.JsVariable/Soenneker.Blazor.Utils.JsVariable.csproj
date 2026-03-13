@@ -52,6 +52,6 @@
         <PackageReference Include="Soenneker.Asyncs.Initializers" Version="4.0.41" />
         <PackageReference Include="Soenneker.Extensions.CancellationTokens" Version="4.0.16" />
         <PackageReference Include="Soenneker.Utils.CancellationScopes" Version="4.0.36" />
-        <PackageReference Include="Soenneker.Utils.Delay" Version="4.0.57" />
+        <PackageReference Include="Soenneker.Utils.Delay" Version="4.0.62" />
     </ItemGroup>
 </Project>
