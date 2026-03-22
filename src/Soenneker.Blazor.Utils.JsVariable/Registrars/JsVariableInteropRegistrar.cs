@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Soenneker.Blazor.Utils.JsVariable.Abstract;
+using Soenneker.Blazor.Utils.ModuleImport.Registrars;
 
 namespace Soenneker.Blazor.Utils.JsVariable.Registrars;
 
@@ -14,7 +15,7 @@ public static class JsVariableInteropRegistrar
     /// </summary>
     public static IServiceCollection AddJsVariableInteropAsScoped(this IServiceCollection services)
     {
-        services.TryAddScoped<IJsVariableInterop, JsVariableInterop>();
+        services.AddModuleImportUtilAsScoped().TryAddScoped<IJsVariableInterop, JsVariableInterop>();
 
         return services;
     }

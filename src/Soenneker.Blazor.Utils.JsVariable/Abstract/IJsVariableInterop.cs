@@ -24,9 +24,10 @@ public interface IJsVariableInterop : IAsyncDisposable
     /// Asynchronously waits until a specified JavaScript variable is available in the global scope.
     /// </summary>
     /// <param name="variableName">The name of the JavaScript variable to wait for.</param>
-    /// <param name="delay">The delay in milliseconds between each availability check. The default is 100 milliseconds.</param>
+    /// <param name="delay">The delay in milliseconds between each availability check. The default is 16 milliseconds.</param>
+    /// <param name="timeout">An optional timeout in milliseconds. If specified, the operation throws when the timeout elapses before the variable becomes available.</param>
     /// <param name="cancellationToken">An optional token to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     /// <remarks>This method ensures the necessary JavaScript is injected and repeatedly checks for the variable's availability until it becomes available or the operation is canceled.</remarks>
-    ValueTask WaitForVariable(string variableName, int delay = 100, CancellationToken cancellationToken = default);
+    ValueTask WaitForVariable(string variableName, int delay = 16, int? timeout = null, CancellationToken cancellationToken = default);
 }
