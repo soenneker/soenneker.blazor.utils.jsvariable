@@ -12,7 +12,7 @@ namespace Soenneker.Blazor.Utils.JsVariable;
 /// <inheritdoc cref="IJsVariableInterop"/>
 public sealed class JsVariableInterop : IJsVariableInterop
 {
-    private const string _modulePath = "Soenneker.Blazor.Utils.JsVariable/js/jsvariableinterop.js";
+    private const string _modulePath = "_content/Soenneker.Blazor.Utils.JsVariable/js/jsvariableinterop.js";
 
     private readonly IModuleImportUtil _moduleImportUtil;
     private readonly CancellationScope _cancellationScope = new();
