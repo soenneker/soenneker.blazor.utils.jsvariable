@@ -30,11 +30,10 @@ public sealed class JsVariableInterop : IJsVariableInterop
 
         using (source)
         {
-            IJSObjectReference module = await _moduleImportUtil.ImportContentModule(_modulePath, linked);
+            IJSObjectReference module = await _moduleImportUtil.GetContentModuleReference(_modulePath, linked);
             return await module.InvokeAsync<bool>("isVariableAvailable", linked, variableName);
         }
     }
-
 
     public async ValueTask WaitForVariable(string variableName, int delay = 16, int? timeout = null, CancellationToken cancellationToken = default)
     {
@@ -42,11 +41,11 @@ public sealed class JsVariableInterop : IJsVariableInterop
 
         CancellationToken linked = _cancellationScope.CancellationToken.Link(cancellationToken, out CancellationTokenSource? source);
         var operationId = Guid.NewGuid()
-                              .ToString();
+                              .ToString("N");
 
         using (source)
         {
-            IJSObjectReference module = await _moduleImportUtil.ImportContentModule(_modulePath, linked);
+            IJSObjectReference module = await _moduleImportUtil.GetContentModuleReference(_modulePath, linked);
 
             try
             {
@@ -56,7 +55,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
             {
                 try
                 {
-                    await module.InvokeVoidAsync("cancelWaitForVariable", CancellationToken.None, operationId);
+                    _ = await module.InvokeAsync<bool>("cancelWaitForVariable", CancellationToken.None, operationId);
                 }
                 catch
                 {
@@ -64,20 +63,6 @@ public sealed class JsVariableInterop : IJsVariableInterop
 
                 throw;
             }
-        }
-    }
-
-    private static async Task CancelWaitForVariableFromCancellation(object? state)
-    {
-        if (state is not ValueTuple<IJSObjectReference, string> tuple)
-            return;
-
-        try
-        {
-            await tuple.Item1.InvokeVoidAsync("cancelWaitForVariable", CancellationToken.None, tuple.Item2);
-        }
-        catch
-        {
         }
     }
 

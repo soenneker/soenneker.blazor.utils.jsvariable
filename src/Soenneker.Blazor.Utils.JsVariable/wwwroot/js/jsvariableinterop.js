@@ -13,7 +13,7 @@ function resolveVariable(variableName) {
     let current = globalThis;
 
     for (const part of parts) {
-        if (current == null || !Object.hasOwn(current, part)) {
+        if (current == null || !(part in current)) {
             return undefined;
         }
 
@@ -28,6 +28,10 @@ export function isVariableAvailable(variableName) {
 }
 
 export function cancelWaitForVariable(operationId) {
+    if (typeof operationId !== 'string' || operationId.length === 0) {
+        throw new Error('operationId must be a non-empty string.');
+    }
+
     const waiter = waiters.get(operationId);
 
     if (!waiter) {
@@ -38,6 +42,7 @@ export function cancelWaitForVariable(operationId) {
 
     if (waiter.timeoutHandle != null) {
         globalThis.clearTimeout(waiter.timeoutHandle);
+        waiter.timeoutHandle = null;
     }
 
     waiters.delete(operationId);
@@ -52,8 +57,9 @@ export async function waitForVariable(operationId, variableName, delay = 16, tim
     }
 
     delay = Number.isFinite(delay) && delay >= 0 ? delay : 16;
+    timeout = Number.isFinite(timeout) && timeout >= 0 ? timeout : null;
 
-    if (isVariableAvailable(variableName)) {
+    if (typeof resolveVariable(variableName) !== 'undefined') {
         return;
     }
 
@@ -87,15 +93,15 @@ export async function waitForVariable(operationId, variableName, delay = 16, tim
                 return;
             }
 
-            if (isVariableAvailable(variableName)) {
+            if (typeof resolveVariable(variableName) !== 'undefined') {
                 cleanup();
                 resolve();
                 return;
             }
 
-            if (timeout != null && Date.now() - startedAt >= timeout) {
+            if (timeout != null && (Date.now() - startedAt) >= timeout) {
                 cleanup();
-                reject(new Error(`Timed out waiting for JavaScript variable "${variableName}"`));
+                reject(new Error(`Timed out waiting for JavaScript variable "${variableName}".`));
                 return;
             }
 
