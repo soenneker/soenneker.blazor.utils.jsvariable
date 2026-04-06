@@ -35,41 +35,38 @@ public sealed class JsVariableInterop : IJsVariableInterop
         }
     }
 
+
     public async ValueTask WaitForVariable(string variableName, int delay = 16, int? timeout = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(variableName);
 
         CancellationToken linked = _cancellationScope.CancellationToken.Link(cancellationToken, out CancellationTokenSource? source);
-        string operationId = Guid.NewGuid().ToString("N");
+        var operationId = Guid.NewGuid()
+                              .ToString();
 
         using (source)
         {
             IJSObjectReference module = await _moduleImportUtil.ImportContentModule(_modulePath, linked);
 
-            using CancellationTokenRegistration registration = linked.Register(static state =>
-            {
-                _ = CancelWaitForVariableFromCancellation(state);
-            }, (module, operationId));
-
             try
             {
                 await module.InvokeVoidAsync("waitForVariable", linked, operationId, variableName, delay, timeout);
             }
-            finally
+            catch (OperationCanceledException) when (linked.IsCancellationRequested)
             {
-                if (linked.IsCancellationRequested)
+                try
                 {
-                    try
-                    {
-                        await module.InvokeVoidAsync("cancelWaitForVariable", CancellationToken.None, operationId);
-                    }
-                    catch
-                    {
-                    }
+                    await module.InvokeVoidAsync("cancelWaitForVariable", CancellationToken.None, operationId);
                 }
+                catch
+                {
+                }
+
+                throw;
             }
         }
     }
+
     private static async Task CancelWaitForVariableFromCancellation(object? state)
     {
         if (state is not ValueTuple<IJSObjectReference, string> tuple)
