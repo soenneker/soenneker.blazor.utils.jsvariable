@@ -1,18 +1,11 @@
-const waiters = new Map();
+const pending = new Map();
 
-function validateVariableName(variableName) {
-    if (typeof variableName !== 'string' || variableName.trim().length === 0) {
-        throw new Error('variableName must be a non-empty string.');
-    }
-}
-
-function resolveVariable(variableName) {
-    validateVariableName(variableName);
-
-    const parts = variableName.split('.');
+function resolveParts(parts) {
     let current = globalThis;
 
-    for (const part of parts) {
+    for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+
         if (current == null || !(part in current)) {
             return undefined;
         }
@@ -23,90 +16,98 @@ function resolveVariable(variableName) {
     return current;
 }
 
+function resolveVariable(variableName) {
+    const dotIndex = variableName.indexOf(".");
+
+    if (dotIndex === -1) {
+        return globalThis[variableName];
+    }
+
+    return resolveParts(variableName.split("."));
+}
+
 export function isVariableAvailable(variableName) {
-    return typeof resolveVariable(variableName) !== 'undefined';
+    return resolveVariable(variableName) !== undefined;
 }
 
 export function cancelWaitForVariable(operationId) {
-    if (typeof operationId !== 'string' || operationId.length === 0) {
-        throw new Error('operationId must be a non-empty string.');
-    }
+    const state = pending.get(operationId);
 
-    const waiter = waiters.get(operationId);
-
-    if (!waiter) {
+    if (state === undefined) {
         return false;
     }
 
-    waiter.cancelled = true;
+    state.cancelled = true;
 
-    if (waiter.timeoutHandle != null) {
-        globalThis.clearTimeout(waiter.timeoutHandle);
-        waiter.timeoutHandle = null;
+    const handle = state.handle;
+
+    if (handle !== 0) {
+        clearTimeout(handle);
+        state.handle = 0;
     }
 
-    waiters.delete(operationId);
+    pending.delete(operationId);
     return true;
 }
 
-export async function waitForVariable(operationId, variableName, delay = 16, timeout = null) {
-    validateVariableName(variableName);
+export function waitForVariable(operationId, variableName, delay, timeout) {
+    const dotIndex = variableName.indexOf(".");
+    const parts = dotIndex === -1 ? null : variableName.split(".");
 
-    if (typeof operationId !== 'string' || operationId.length === 0) {
-        throw new Error('operationId must be a non-empty string.');
+    if ((parts === null ? globalThis[variableName] : resolveParts(parts)) !== undefined) {
+        return Promise.resolve();
     }
 
-    delay = Number.isFinite(delay) && delay >= 0 ? delay : 16;
-    timeout = Number.isFinite(timeout) && timeout >= 0 ? timeout : null;
-
-    if (typeof resolveVariable(variableName) !== 'undefined') {
-        return;
-    }
-
-    if (waiters.has(operationId)) {
+    if (pending.has(operationId)) {
         throw new Error(`A wait operation with id "${operationId}" already exists.`);
     }
 
-    const startedAt = Date.now();
+    return new Promise((resolvePromise, rejectPromise) => {
+        const hasTimeout = timeout != null;
+        const started = hasTimeout ? Date.now() : 0;
 
-    await new Promise((resolve, reject) => {
         const state = {
             cancelled: false,
-            timeoutHandle: null
+            handle: 0
         };
 
-        waiters.set(operationId, state);
+        pending.set(operationId, state);
 
-        const cleanup = () => {
-            if (state.timeoutHandle != null) {
-                globalThis.clearTimeout(state.timeoutHandle);
-                state.timeoutHandle = null;
+        function cleanup() {
+            const handle = state.handle;
+
+            if (handle !== 0) {
+                clearTimeout(handle);
+                state.handle = 0;
             }
 
-            waiters.delete(operationId);
-        };
+            pending.delete(operationId);
+        }
 
-        const poll = () => {
+        function isAvailable() {
+            return (parts === null ? globalThis[variableName] : resolveParts(parts)) !== undefined;
+        }
+
+        function poll() {
             if (state.cancelled) {
-                cleanup();
-                reject(new Error(`Waiting for JavaScript variable "${variableName}" was cancelled.`));
+                rejectPromise(new Error(`Waiting for JavaScript variable "${variableName}" was cancelled.`));
                 return;
             }
 
-            if (typeof resolveVariable(variableName) !== 'undefined') {
+            if (isAvailable()) {
                 cleanup();
-                resolve();
+                resolvePromise();
                 return;
             }
 
-            if (timeout != null && (Date.now() - startedAt) >= timeout) {
+            if (hasTimeout && (Date.now() - started) >= timeout) {
                 cleanup();
-                reject(new Error(`Timed out waiting for JavaScript variable "${variableName}".`));
+                rejectPromise(new Error(`Timed out waiting for JavaScript variable "${variableName}".`));
                 return;
             }
 
-            state.timeoutHandle = globalThis.setTimeout(poll, delay);
-        };
+            state.handle = setTimeout(poll, delay);
+        }
 
         poll();
     });

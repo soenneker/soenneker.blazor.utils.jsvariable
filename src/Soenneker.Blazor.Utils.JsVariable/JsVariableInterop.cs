@@ -1,11 +1,12 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.JSInterop;
 using Soenneker.Blazor.Utils.JsVariable.Abstract;
 using Soenneker.Blazor.Utils.ModuleImport.Abstract;
 using Soenneker.Extensions.CancellationTokens;
+using Soenneker.Extensions.ValueTask;
 using Soenneker.Utils.CancellationScopes;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Soenneker.Blazor.Utils.JsVariable;
 
@@ -30,8 +31,10 @@ public sealed class JsVariableInterop : IJsVariableInterop
 
         using (source)
         {
-            IJSObjectReference module = await _moduleImportUtil.GetContentModuleReference(_modulePath, linked);
-            return await module.InvokeAsync<bool>("isVariableAvailable", linked, variableName);
+            IJSObjectReference module = await _moduleImportUtil.GetContentModuleReference(_modulePath, linked)
+                                                               .NoSync();
+            return await module.InvokeAsync<bool>("isVariableAvailable", linked, variableName)
+                               .NoSync();
         }
     }
 
@@ -39,23 +42,28 @@ public sealed class JsVariableInterop : IJsVariableInterop
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(variableName);
 
+        if (delay < 0)
+            throw new ArgumentOutOfRangeException(nameof(delay), delay, "Delay must be greater than or equal to 0.");
+
+        if (timeout is < 0)
+            throw new ArgumentOutOfRangeException(nameof(timeout), timeout, "Timeout must be greater than or equal to 0.");
+
         CancellationToken linked = _cancellationScope.CancellationToken.Link(cancellationToken, out CancellationTokenSource? source);
-        var operationId = Guid.NewGuid()
-                              .ToString("N");
+        var operationId = Guid.NewGuid().ToString();
 
         using (source)
         {
-            IJSObjectReference module = await _moduleImportUtil.GetContentModuleReference(_modulePath, linked);
+            IJSObjectReference module = await _moduleImportUtil.GetContentModuleReference(_modulePath, linked).NoSync();
 
             try
             {
-                await module.InvokeVoidAsync("waitForVariable", linked, operationId, variableName, delay, timeout);
+                await module.InvokeVoidAsync("waitForVariable", linked, operationId, variableName, delay, timeout).NoSync();
             }
             catch (OperationCanceledException) when (linked.IsCancellationRequested)
             {
                 try
                 {
-                    _ = await module.InvokeAsync<bool>("cancelWaitForVariable", CancellationToken.None, operationId);
+                    _ = await module.InvokeAsync<bool>("cancelWaitForVariable", CancellationToken.None, operationId).NoSync();
                 }
                 catch
                 {
@@ -63,12 +71,18 @@ public sealed class JsVariableInterop : IJsVariableInterop
 
                 throw;
             }
+            catch (JSException ex) when (timeout.HasValue && ex.Message.Contains("Timed out waiting for JavaScript variable", StringComparison.Ordinal))
+            {
+                throw new TimeoutException(ex.Message, ex);
+            }
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        await _moduleImportUtil.DisposeContentModule(_modulePath);
-        await _cancellationScope.DisposeAsync();
+        await _moduleImportUtil.DisposeContentModule(_modulePath)
+                               .NoSync();
+        await _cancellationScope.DisposeAsync()
+                                .NoSync();
     }
 }
