@@ -1,4 +1,5 @@
 using Microsoft.JSInterop;
+using Soenneker.Blazor.Utils.Ids;
 using Soenneker.Blazor.Utils.JsVariable.Abstract;
 using Soenneker.Blazor.Utils.ModuleImport.Abstract;
 using Soenneker.Extensions.CancellationTokens;
@@ -49,7 +50,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
             throw new ArgumentOutOfRangeException(nameof(timeout), timeout, "Timeout must be greater than or equal to 0.");
 
         CancellationToken linked = _cancellationScope.CancellationToken.Link(cancellationToken, out CancellationTokenSource? source);
-        var operationId = Guid.NewGuid().ToString();
+        var operationId = BlazorIdGenerator.New("jsvar-wait");
 
         using (source)
         {

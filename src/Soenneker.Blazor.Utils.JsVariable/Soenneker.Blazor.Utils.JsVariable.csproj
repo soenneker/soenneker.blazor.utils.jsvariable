@@ -49,4 +49,8 @@
     <ItemGroup>
         <PackageReference Include="Soenneker.Blazor.Utils.ModuleImport" Version="4.0.1794" />
     </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\soenneker.blazor.utils.ids\src\Soenneker.Blazor.Utils.Ids\Soenneker.Blazor.Utils.Ids.csproj" />
+    </ItemGroup>
 </Project>
