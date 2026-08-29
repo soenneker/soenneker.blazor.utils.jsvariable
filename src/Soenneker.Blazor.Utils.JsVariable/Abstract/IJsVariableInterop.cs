@@ -1,6 +1,5 @@
 using System.Threading.Tasks;
 using System.Threading;
-using System.Diagnostics.Contracts;
 using System;
 
 namespace Soenneker.Blazor.Utils.JsVariable.Abstract;
@@ -16,18 +15,17 @@ public interface IJsVariableInterop : IAsyncDisposable
     /// <param name="variableName">The name of the JavaScript variable to check for availability.</param>
     /// <param name="cancellationToken">An optional token to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask{TResult}"/> that represents the asynchronous operation, containing <c>true</c> if the variable is available; otherwise, <c>false</c>.</returns>
-    /// <remarks>This method ensures the necessary JavaScript is injected before checking for the variable.</remarks>
-    [Pure]
+    /// <remarks>A property whose value is <see langword="null"/> is available; a missing property or one whose value is JavaScript <c>undefined</c> is not.</remarks>
     ValueTask<bool> IsVariableAvailable(string variableName, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously waits until a specified JavaScript variable is available in the global scope.
     /// </summary>
     /// <param name="variableName">The name of the JavaScript variable to wait for.</param>
-    /// <param name="delay">The delay in milliseconds between each availability check. The default is 16 milliseconds.</param>
+    /// <param name="delay">The positive delay in milliseconds between availability checks. The default is 16 milliseconds.</param>
     /// <param name="timeout">An optional timeout in milliseconds. If specified, the operation throws when the timeout elapses before the variable becomes available.</param>
     /// <param name="cancellationToken">An optional token to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    /// <remarks>This method ensures the necessary JavaScript is injected and repeatedly checks for the variable's availability until it becomes available or the operation is canceled.</remarks>
+    /// <remarks>This method repeatedly checks until the value is available, the timeout elapses, or cancellation is requested.</remarks>
     ValueTask WaitForVariable(string variableName, int delay = 16, int? timeout = null, CancellationToken cancellationToken = default);
 }

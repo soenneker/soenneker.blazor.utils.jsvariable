@@ -21,12 +21,12 @@ public sealed class JsVariableInterop : IJsVariableInterop
 
     public JsVariableInterop(IModuleImportUtil moduleImportUtil)
     {
-        _moduleImportUtil = moduleImportUtil;
+        _moduleImportUtil = moduleImportUtil ?? throw new ArgumentNullException(nameof(moduleImportUtil));
     }
 
     public async ValueTask<bool> IsVariableAvailable(string variableName, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(variableName);
+        ValidateVariableName(variableName);
 
         CancellationToken linked = _cancellationScope.CancellationToken.Link(cancellationToken, out CancellationTokenSource? source);
 
@@ -41,10 +41,10 @@ public sealed class JsVariableInterop : IJsVariableInterop
 
     public async ValueTask WaitForVariable(string variableName, int delay = 16, int? timeout = null, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(variableName);
+        ValidateVariableName(variableName);
 
-        if (delay < 0)
-            throw new ArgumentOutOfRangeException(nameof(delay), delay, "Delay must be greater than or equal to 0.");
+        if (delay <= 0)
+            throw new ArgumentOutOfRangeException(nameof(delay), delay, "Delay must be greater than 0.");
 
         if (timeout is < 0)
             throw new ArgumentOutOfRangeException(nameof(timeout), timeout, "Timeout must be greater than or equal to 0.");
@@ -85,9 +85,23 @@ public sealed class JsVariableInterop : IJsVariableInterop
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async ValueTask DisposeAsync()
     {
-        await _moduleImportUtil.DisposeContentModule(_modulePath)
-                               .NoSync();
         await _cancellationScope.DisposeAsync()
                                 .NoSync();
+        await _moduleImportUtil.DisposeContentModule(_modulePath)
+                               .NoSync();
+    }
+
+    private static void ValidateVariableName(string variableName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(variableName);
+
+        foreach (string segment in variableName.Split('.'))
+        {
+            if (string.IsNullOrWhiteSpace(segment))
+                throw new ArgumentException("JavaScript variable paths cannot contain empty segments.", nameof(variableName));
+
+            if (segment is "__proto__" or "prototype" or "constructor")
+                throw new ArgumentException("JavaScript variable paths cannot traverse prototype-related properties.", nameof(variableName));
+        }
     }
 }
