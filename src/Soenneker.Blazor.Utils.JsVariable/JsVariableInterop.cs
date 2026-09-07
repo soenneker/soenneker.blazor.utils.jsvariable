@@ -95,12 +95,14 @@ public sealed class JsVariableInterop : IJsVariableInterop
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(variableName);
 
-        foreach (string segment in variableName.Split('.'))
+        ReadOnlySpan<char> path = variableName.AsSpan();
+        foreach (Range range in path.Split('.'))
         {
-            if (string.IsNullOrWhiteSpace(segment))
+            ReadOnlySpan<char> segment = path[range];
+            if (segment.IsWhiteSpace())
                 throw new ArgumentException("JavaScript variable paths cannot contain empty segments.", nameof(variableName));
 
-            if (segment is "__proto__" or "prototype" or "constructor")
+            if (segment.SequenceEqual("__proto__") || segment.SequenceEqual("prototype") || segment.SequenceEqual("constructor"))
                 throw new ArgumentException("JavaScript variable paths cannot traverse prototype-related properties.", nameof(variableName));
         }
     }

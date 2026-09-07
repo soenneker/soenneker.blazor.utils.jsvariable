@@ -22,7 +22,7 @@ function resolveParts(parts) {
     return current;
 }
 
-function resolveVariable(variableName) {
+function parseVariableName(variableName) {
     if (typeof variableName !== "string" || variableName.trim().length === 0) {
         throw new Error("JavaScript variable name cannot be null, empty, or whitespace.");
     }
@@ -33,7 +33,11 @@ function resolveVariable(variableName) {
         throw new Error("JavaScript variable paths cannot contain empty segments.");
     }
 
-    return resolveParts(parts);
+    return parts;
+}
+
+function resolveVariable(variableName) {
+    return resolveParts(parseVariableName(variableName));
 }
 
 export function isVariableAvailable(variableName) {
@@ -60,7 +64,8 @@ export function waitForVariable(operationId, variableName, delay, timeout) {
         throw new Error("Timeout must be a non-negative integer.");
     }
 
-    if (resolveVariable(variableName) !== undefined) {
+    const parts = parseVariableName(variableName);
+    if (resolveParts(parts) !== undefined) {
         return Promise.resolve();
     }
 
@@ -88,7 +93,7 @@ export function waitForVariable(operationId, variableName, delay, timeout) {
         }
 
         function isAvailable() {
-            return resolveVariable(variableName) !== undefined;
+            return resolveParts(parts) !== undefined;
         }
 
         state.cancel = () => {
