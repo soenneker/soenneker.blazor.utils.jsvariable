@@ -38,7 +38,8 @@ public sealed class JsVariableInterop : IJsVariableInterop
         cancellationToken.ThrowIfCancellationRequested();
         ValidateVariableName(variableName);
 
-        CancellationToken lifetime = EnterOperation(false, cancellationToken, out object?[] arguments, out InvocationCancellation? cancellation);
+        CancellationToken lifetime = EnterOperation(false, cancellationToken, out object?[] arguments,
+            out InvocationCancellation? cancellation);
         try
         {
             CancellationToken linked = cancellation?.Link(lifetime, cancellationToken) ?? lifetime;
@@ -51,6 +52,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
                 linked.ThrowIfCancellationRequested();
                 return synchronous.Invoke<bool>("isVariableAvailable", arguments);
             }
+
             return await module.InvokeAsync<bool>("isVariableAvailable", linked, arguments).ConfigureAwait(false);
         }
         finally
@@ -59,7 +61,8 @@ public sealed class JsVariableInterop : IJsVariableInterop
         }
     }
 
-    public async ValueTask WaitForVariable(string variableName, int delay = 16, int? timeout = null, CancellationToken cancellationToken = default)
+    public async ValueTask WaitForVariable(string variableName, int delay = 16, int? timeout = null,
+        CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed.Value, this);
         cancellationToken.ThrowIfCancellationRequested();
@@ -69,21 +72,27 @@ public sealed class JsVariableInterop : IJsVariableInterop
             throw new ArgumentOutOfRangeException(nameof(delay), delay, "Delay must be greater than 0.");
 
         if (timeout is < 0)
-            throw new ArgumentOutOfRangeException(nameof(timeout), timeout, "Timeout must be greater than or equal to 0.");
+            throw new ArgumentOutOfRangeException(nameof(timeout), timeout,
+                "Timeout must be greater than or equal to 0.");
 
-        CancellationToken lifetime = EnterOperation(true, cancellationToken, out object?[] arguments, out InvocationCancellation? cancellation);
-        bool completed = false;
+        CancellationToken lifetime = EnterOperation(true, cancellationToken, out object?[] arguments,
+            out InvocationCancellation? cancellation);
+        var completed = false;
+
         try
         {
             CancellationToken linked = cancellation?.Link(lifetime, cancellationToken) ?? lifetime;
 
-            IJSObjectReference module = await _moduleImportUtil.GetContentModuleReference(_modulePath, linked).ConfigureAwait(false);
+            IJSObjectReference module = await _moduleImportUtil.GetContentModuleReference(_modulePath, linked)
+                                                               .ConfigureAwait(false);
             linked.ThrowIfCancellationRequested();
-            if (module is IJSInProcessObjectReference synchronous && IsAvailableSynchronously(synchronous, variableName))
+            if (module is IJSInProcessObjectReference synchronous &&
+                IsAvailableSynchronously(synchronous, variableName))
             {
                 completed = true;
                 return;
             }
+
             arguments[1] = variableName;
             if ((int)arguments[2]! != delay)
                 arguments[2] = delay;
@@ -100,7 +109,8 @@ public sealed class JsVariableInterop : IJsVariableInterop
             {
                 try
                 {
-                    _ = await module.InvokeAsync<bool>("cancelWaitForVariable", CancellationToken.None, operationId).ConfigureAwait(false);
+                    _ = await module.InvokeAsync<bool>("cancelWaitForVariable", CancellationToken.None, operationId)
+                                    .ConfigureAwait(false);
                 }
                 catch
                 {
@@ -108,7 +118,9 @@ public sealed class JsVariableInterop : IJsVariableInterop
 
                 throw;
             }
-            catch (JSException ex) when (timeout.HasValue && ex.Message.Contains("Timed out waiting for JavaScript variable", StringComparison.Ordinal))
+            catch (JSException ex) when (timeout.HasValue &&
+                                         ex.Message.Contains("Timed out waiting for JavaScript variable",
+                                             StringComparison.Ordinal))
             {
                 throw new TimeoutException(ex.Message, ex);
             }
@@ -143,6 +155,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
             arguments = _availabilityArguments ?? new object?[1];
             _availabilityArguments = null;
         }
+
         try
         {
             arguments[0] = variableName;
@@ -163,8 +176,10 @@ public sealed class JsVariableInterop : IJsVariableInterop
         {
             if (!_disposed.TrySetTrue())
                 return;
-            drained = _activeOperations == 0 ? Task.CompletedTask
-                : (_operationsDrained = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)).Task;
+            drained = _activeOperations == 0
+                ? Task.CompletedTask
+                : (_operationsDrained = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously))
+                .Task;
         }
 
         await CancelLifetime();
@@ -174,8 +189,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
         _waitArguments = null;
         _invocationCancellation?.Dispose();
         _invocationCancellation = null;
-        await _moduleImportUtil.DisposeContentModule(_modulePath)
-                               .ConfigureAwait(false);
+        await _moduleImportUtil.DisposeContentModule(_modulePath).ConfigureAwait(false);
     }
 
     private CancellationToken EnterOperation(bool waiting, CancellationToken caller, out object?[] arguments,
@@ -195,12 +209,14 @@ public sealed class JsVariableInterop : IJsVariableInterop
                 arguments = _availabilityArguments ?? new object?[1];
                 _availabilityArguments = null;
             }
+
             cancellation = null;
             if (caller.CanBeCanceled && caller != lifetime)
             {
                 cancellation = _invocationCancellation ?? new InvocationCancellation();
                 _invocationCancellation = null;
             }
+
             _activeOperations++;
             return lifetime;
         }
@@ -219,6 +235,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
                 else
                     cancellation!.Dispose();
             }
+
             // Reuse wait IDs only after JS acknowledges successful completion.
             // Cancellation/failure may leave an older invocation in transit.
             if (reusable)
@@ -228,6 +245,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
                 else
                     _availabilityArguments ??= arguments;
             }
+
             if (--_activeOperations == 0)
                 _operationsDrained?.TrySetResult();
         }
@@ -241,11 +259,14 @@ public sealed class JsVariableInterop : IJsVariableInterop
         foreach (Range range in path.Split('.'))
         {
             ReadOnlySpan<char> segment = path[range];
-            if (segment.IsWhiteSpace())
-                throw new ArgumentException("JavaScript variable paths cannot contain empty segments.", nameof(variableName));
 
-            if (segment.SequenceEqual("__proto__") || segment.SequenceEqual("prototype") || segment.SequenceEqual("constructor"))
-                throw new ArgumentException("JavaScript variable paths cannot traverse prototype-related properties.", nameof(variableName));
+            if (segment.IsWhiteSpace())
+                throw new ArgumentException("JavaScript variable paths cannot contain empty segments.",
+                    nameof(variableName));
+
+            if (segment is "__proto__" || segment is "prototype" || segment is "constructor")
+                throw new ArgumentException("JavaScript variable paths cannot traverse prototype-related properties.",
+                    nameof(variableName));
         }
     }
 }
