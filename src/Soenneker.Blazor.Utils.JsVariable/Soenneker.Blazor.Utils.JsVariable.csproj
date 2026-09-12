@@ -46,6 +46,6 @@
     <ItemGroup>
         <PackageReference Include="Soenneker.Asyncs.Locks" Version="4.0.82" />
         <PackageReference Include="Soenneker.Blazor.Utils.Ids" Version="4.0.27" />
-        <PackageReference Include="Soenneker.Blazor.Utils.ModuleImport" Version="4.0.1883" />
+        <PackageReference Include="Soenneker.Blazor.Utils.ModuleImport" Version="4.0.1887" />
     </ItemGroup>
 </Project>
