@@ -7,6 +7,11 @@ namespace Soenneker.Blazor.Utils.JsVariable.Abstract;
 /// <summary>
 /// A Blazor interop library that checks (and waits) for the existence of a JS variable
 /// </summary>
+/// <remarks>
+/// Disposal cancels active operations and waits for browser-side cancellation cleanup before releasing the module reference.
+/// In-process runtimes use synchronous interop for availability checks and already-available variables.
+/// Missing variables use asynchronous JavaScript polling on every runtime.
+/// </remarks>
 public interface IJsVariableInterop : IAsyncDisposable
 {
     /// <summary>

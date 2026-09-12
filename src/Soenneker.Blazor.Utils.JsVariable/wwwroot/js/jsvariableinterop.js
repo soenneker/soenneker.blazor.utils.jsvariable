@@ -1,12 +1,17 @@
 const pending = new Map();
 
 function resolveParts(parts) {
+    if (typeof parts === "string") {
+        const descriptor = Object.getOwnPropertyDescriptor(globalThis, parts);
+        return descriptor && "value" in descriptor ? descriptor.value : undefined;
+    }
+
     let current = globalThis;
 
     for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
 
-        if (current == null || part === "__proto__" || part === "prototype" || part === "constructor") {
+        if (current == null) {
             return undefined;
         }
 
@@ -27,21 +32,31 @@ function parseVariableName(variableName) {
         throw new Error("JavaScript variable name cannot be null, empty, or whitespace.");
     }
 
-    const parts = variableName.split(".");
+    // Global names are the common case; avoid allocating an array for them.
+    if (!variableName.includes(".")) {
+        validatePart(variableName);
+        return variableName;
+    }
 
-    if (parts.some(part => part.trim().length === 0)) {
-        throw new Error("JavaScript variable paths cannot contain empty segments.");
+    const parts = variableName.split(".");
+    for (let i = 0; i < parts.length; i++) {
+        validatePart(parts[i]);
     }
 
     return parts;
 }
 
-function resolveVariable(variableName) {
-    return resolveParts(parseVariableName(variableName));
+function validatePart(part) {
+    if (part.trim().length === 0) {
+        throw new Error("JavaScript variable paths cannot contain empty segments.");
+    }
+    if (part === "__proto__" || part === "prototype" || part === "constructor") {
+        throw new Error("JavaScript variable paths cannot traverse prototype-related properties.");
+    }
 }
 
 export function isVariableAvailable(variableName) {
-    return resolveVariable(variableName) !== undefined;
+    return resolveParts(parseVariableName(variableName)) !== undefined;
 }
 
 export function cancelWaitForVariable(operationId) {
@@ -66,7 +81,7 @@ export function waitForVariable(operationId, variableName, delay, timeout) {
 
     const parts = parseVariableName(variableName);
     if (resolveParts(parts) !== undefined) {
-        return Promise.resolve();
+        return;
     }
 
     if (pending.has(operationId)) {
@@ -75,7 +90,7 @@ export function waitForVariable(operationId, variableName, delay, timeout) {
 
     return new Promise((resolvePromise, rejectPromise) => {
         const hasTimeout = timeout != null;
-        const started = hasTimeout ? Date.now() : 0;
+        const deadline = hasTimeout ? performance.now() + timeout : 0;
 
         const state = { handle: 0, cancel: null };
 
@@ -92,31 +107,36 @@ export function waitForVariable(operationId, variableName, delay, timeout) {
             pending.delete(operationId);
         }
 
-        function isAvailable() {
-            return resolveParts(parts) !== undefined;
-        }
-
         state.cancel = () => {
             cleanup();
             rejectPromise(new Error(`Waiting for JavaScript variable "${variableName}" was cancelled.`));
         };
 
         function poll() {
-            if (isAvailable()) {
+            try {
+                if (resolveParts(parts) !== undefined) {
+                    cleanup();
+                    resolvePromise();
+                    return;
+                }
+                schedule();
+            } catch (error) {
                 cleanup();
-                resolvePromise();
-                return;
+                rejectPromise(error);
             }
+        }
 
-            if (hasTimeout && (Date.now() - started) >= timeout) {
+        function schedule() {
+            const remaining = hasTimeout ? deadline - performance.now() : delay;
+            if (remaining <= 0) {
                 cleanup();
                 rejectPromise(new Error(`Timed out waiting for JavaScript variable "${variableName}".`));
                 return;
             }
 
-            state.handle = setTimeout(poll, delay);
+            state.handle = setTimeout(poll, Math.min(delay, remaining));
         }
 
-        poll();
+        schedule();
     });
 }
