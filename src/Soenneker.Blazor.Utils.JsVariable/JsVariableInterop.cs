@@ -5,6 +5,7 @@ using Soenneker.Blazor.Utils.Ids;
 using Soenneker.Blazor.Utils.JsVariable.Abstract;
 using Soenneker.Blazor.Utils.ModuleImport.Abstract;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -50,7 +51,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
             if (module is IJSInProcessObjectReference synchronous)
             {
                 linked.ThrowIfCancellationRequested();
-                return synchronous.Invoke<bool>("isVariableAvailable", arguments);
+                return InvokeIsVariableAvailable(synchronous, arguments);
             }
 
             return await module.InvokeAsync<bool>("isVariableAvailable", linked, arguments).ConfigureAwait(false);
@@ -159,7 +160,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
         try
         {
             arguments[0] = variableName;
-            return module.Invoke<bool>("isVariableAvailable", arguments);
+            return InvokeIsVariableAvailable(module, arguments);
         }
         finally
         {
@@ -167,6 +168,13 @@ public sealed class JsVariableInterop : IJsVariableInterop
             using (_operationsGate.LockSync())
                 _availabilityArguments ??= arguments;
         }
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "This invocation only serializes a string argument and deserializes a Boolean; neither requires reflected application members.")]
+    private static bool InvokeIsVariableAvailable(IJSInProcessObjectReference module, object?[] arguments)
+    {
+        return module.Invoke<bool>("isVariableAvailable", arguments);
     }
 
     public async ValueTask DisposeAsync()
