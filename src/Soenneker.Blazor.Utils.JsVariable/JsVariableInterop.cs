@@ -5,7 +5,6 @@ using Soenneker.Blazor.Utils.Ids;
 using Soenneker.Blazor.Utils.JsVariable.Abstract;
 using Soenneker.Blazor.Utils.ModuleImport.Abstract;
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,12 +47,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
             IJSObjectReference module = await _moduleImportUtil.GetContentModuleReference(_modulePath, linked)
                                                                .ConfigureAwait(false);
             arguments[0] = variableName;
-            if (module is IJSInProcessObjectReference synchronous)
-            {
-                linked.ThrowIfCancellationRequested();
-                return InvokeIsVariableAvailable(synchronous, arguments);
-            }
-
+            linked.ThrowIfCancellationRequested();
             return await module.InvokeAsync<bool>("isVariableAvailable", linked, arguments).ConfigureAwait(false);
         }
         finally
@@ -87,13 +81,6 @@ public sealed class JsVariableInterop : IJsVariableInterop
             IJSObjectReference module = await _moduleImportUtil.GetContentModuleReference(_modulePath, linked)
                                                                .ConfigureAwait(false);
             linked.ThrowIfCancellationRequested();
-            if (module is IJSInProcessObjectReference synchronous &&
-                IsAvailableSynchronously(synchronous, variableName))
-            {
-                completed = true;
-                return;
-            }
-
             arguments[1] = variableName;
             if ((int)arguments[2]! != delay)
                 arguments[2] = delay;
@@ -146,35 +133,6 @@ public sealed class JsVariableInterop : IJsVariableInterop
         {
             _lifetimeCancellation.Dispose();
         }
-    }
-
-    private bool IsAvailableSynchronously(IJSInProcessObjectReference module, string variableName)
-    {
-        object?[] arguments;
-        using (_operationsGate.LockSync())
-        {
-            arguments = _availabilityArguments ?? new object?[1];
-            _availabilityArguments = null;
-        }
-
-        try
-        {
-            arguments[0] = variableName;
-            return InvokeIsVariableAvailable(module, arguments);
-        }
-        finally
-        {
-            arguments[0] = null;
-            using (_operationsGate.LockSync())
-                _availabilityArguments ??= arguments;
-        }
-    }
-
-    [UnconditionalSuppressMessage("Trimming", "IL2026",
-        Justification = "This invocation only serializes a string argument and deserializes a Boolean; neither requires reflected application members.")]
-    private static bool InvokeIsVariableAvailable(IJSInProcessObjectReference module, object?[] arguments)
-    {
-        return module.Invoke<bool>("isVariableAvailable", arguments);
     }
 
     public async ValueTask DisposeAsync()
