@@ -1,4 +1,3 @@
-using Soenneker.Asyncs.Locks;
 using Microsoft.JSInterop;
 using Soenneker.Atomics.ValueBools;
 using Soenneker.Blazor.Utils.Ids;
@@ -18,7 +17,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private readonly CancellationToken _lifetimeToken;
     private ValueAtomicBool _disposed;
-    private readonly AsyncLock _operationsGate = new();
+    private readonly Lock _operationsGate = new();
     private int _activeOperations;
     private TaskCompletionSource? _operationsDrained;
     private object?[]? _availabilityArguments;
@@ -138,7 +137,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
     public async ValueTask DisposeAsync()
     {
         Task drained;
-        using (await _operationsGate.Lock().ConfigureAwait(false))
+        lock (_operationsGate)
         {
             if (!_disposed.TrySetTrue())
                 return;
@@ -161,7 +160,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
     private CancellationToken EnterOperation(bool waiting, CancellationToken caller, out object?[] arguments,
         out InvocationCancellation? cancellation)
     {
-        using (_operationsGate.LockSync())
+        lock (_operationsGate)
         {
             ObjectDisposedException.ThrowIf(_disposed.Value, this);
             CancellationToken lifetime = _lifetimeToken;
@@ -192,7 +191,7 @@ public sealed class JsVariableInterop : IJsVariableInterop
     {
         arguments[waiting ? 1 : 0] = null;
         bool reusableCancellation = cancellation?.Reset() == true;
-        using (_operationsGate.LockSync())
+        lock (_operationsGate)
         {
             if (reusableCancellation)
             {
