@@ -11,7 +11,7 @@ namespace Soenneker.Blazor.Utils.JsVariable;
 
 public sealed class JsVariableInterop : IJsVariableInterop
 {
-    private const string _modulePath = "./_content/Soenneker.Blazor.Utils.JsVariable/js/jsvariableinterop.js";
+    private const string _modulePath = "./_content/Soenneker.Blazor.Utils.JsVariable/js/jsvariableinterop.min.js";
 
     private readonly IModuleImportUtil _moduleImportUtil;
     private readonly CancellationTokenSource _lifetimeCancellation = new();
